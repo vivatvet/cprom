@@ -5,6 +5,7 @@ from typing import Tuple
 import statistics
 import math
 import pprint
+import queue
 
 
 class ExcelFile:
@@ -73,26 +74,44 @@ class ExcelFile:
                 previous_percent = previous_percent + percent
         return tabl
 
+    def get_stat_char(self, row: list) -> Tuple[float, float, int, float]:
+        s = 0
+        for r in row:
+            s = s + r[8]
+        average = s / len(row)
+        sig = 0
+        for r in row:
+            sig = sig + (r[8] - average) * (r[8] - average)
+        if len(row) >= 20 or len(row) == 1:
+            sigma = math.sqrt(sig / (len(row)))
+        else:
+            sigma = math.sqrt(sig / (len(row) - 1))
+        count = len(row)
+        covar = (sigma / average) * 100
+        return average, sigma, count, covar
+
+    def divide_row(self, row: list, average) -> Tuple[list, list]:
+        ll1 = []
+        ll2 = []
+        for r in row:
+            if r[8] > average:
+                ll1.append(r)
+            else:
+                ll2.append(r)
+        return ll1, ll2
+
     def stat_char(self, group_table: dict):
         average = {}
         sigma = {}
         chosen = {}
+        strata = {}
         not_chosen = {}
         step = 0
         average[step] = {}
         sigma[step] = {}
+        q = queue.Queue()
         for group, row in group_table.items():
-            s = 0
-            for r in row:
-                s = s + r[8]
-            average[step][group] = s / len(row)
-            sig = 0
-            for r in row:
-                sig = sig + (r[8] - average[step][group]) * (r[8] - average[step][group])
-            if len(row) >= 20 or len(row) == 1:
-                sigma[step][group] = math.sqrt(sig / (len(row)))
-            else:
-                sigma[step][group] = math.sqrt(sig / (len(row) - 1))
+            average[step][group], sigma[step][group], count, _ = self.get_stat_char(row)
             for r in row:
                 if len(row) >= 20:
                     if r[8] >= (average[step][group] + (3 * sigma[step][group])):
@@ -106,5 +125,18 @@ class ExcelFile:
                         chosen.setdefault(group, []).append(r)
                     else:
                         not_chosen.setdefault(group, []).append(r)
-
-
+        for group, row in not_chosen.items():
+            step = 1
+            q.put(row)
+            while not q.empty():
+                average[step] = {}
+                sigma[step] = {}
+                rq = q.get()
+                average[step][group], sigma[step][group], count, covar = self.get_stat_char(rq)
+                if covar > 33:
+                    row_1, row_2 = self.divide_row(rq, average[step][group])
+                    q.put(row_1)
+                    q.put(row_2)
+                else:
+                    strata.setdefault(group, []).append(rq)
+                step += 1
