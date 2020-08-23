@@ -4,30 +4,52 @@ import sys
 from PyQt5 import QtWidgets
 from gui import design
 from modules import excel_file
+import re
 import pprint
 
 
-class CpromApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
+class CpromApp(QtWidgets.QMainWindow, design.Ui_MainWindow, QtWidgets.QInputDialog):
     def __init__(self):
         self.xl = excel_file.ExcelFile()
         super().__init__()
         self.setupUi(self)
+        self.start_text()
         self.pushButton.clicked.connect(self.load_file)
 
     def load_file(self):
         self.listWidget.clear()
-        self.listWidget.addItem("Загружаем таблицу. Ждите...")
+        self.listWidget.addItem("Загружаем и обрабатываем таблицу. Ждите...")
         f = QtWidgets.QFileDialog.getOpenFileName(self, filter="Exel files (*.xlsx *.xls)")
+        if not f[0]:
+            self.listWidget.clear()
+            self.start_text()
+            return
         self.listWidget.addItem('Таблица из файла ' + f[0] + ' загружена.')
         tb_title, tb_raw = self.xl.load_table(f[0])
+        # group by NPP
         tb_by_npp = self.xl.group_by_npp(tb_raw)
-        # pprint.pprint(tb_by_npp)
+        # sorted into NPP group
         tb_by_npp_sorted = self.xl.sort_by_value(tb_by_npp)
-        # pprint.pprint(tb_by_npp_sorted)
-        cum_90_percent_tabl = self.xl.get_90_cum_percent(tb_by_npp_sorted)
-        # pprint.pprint(cum_90_percent_tabl)
-        self.xl.stat_char(cum_90_percent_tabl)
+        # get 90 percent company
+        cum_90_percent_table, not_selected_table = self.xl.get_90_cum_percent(tb_by_npp_sorted)
+        # choose big company and get states and other
+        chosen, strata, average, sigma, count, covar = self.xl.stat_char(cum_90_percent_table)
+        self.xl.random_choose(strata)
         self.listWidget.addItem('Таблица обработана.')
+        self.listWidget.addItem('Файл записан.')
+        # f_w = re.sub(r'.xlsx|.xls', '_processed.xlsx', f[0])
+        # self.xl.write_to_file(f_w, tb_by_npp, tb_title, chosen)
+
+
+    def start_text(self):
+        self.listWidget.addItem(" ")
+        self.listWidget.addItem("\n\n    Выберите Excel файл.")
+        self.listWidget.addItem("    ВАЖНО!\nПервый столбец должен быть коды НПП, девятый столбец - цены. Иначе программа будет работать некорректно.")
+        # inputD = QtWidgets.QInputDialog(self)  #.setGeometry.(self, 300, 300, 350, 250)
+        # inputD.setGeometry(500, 500, 500, 500)
+        # text, ok, = inputD.getText(self, 'Input Dialog', 'test')
+        # print(text)
+
 
 
 if __name__ == '__main__':

@@ -2,10 +2,9 @@
 
 import pylightxl as xl
 from typing import Tuple
-import statistics
 import math
-import pprint
 import queue
+import pprint
 
 
 class ExcelFile:
@@ -37,31 +36,35 @@ class ExcelFile:
 
     def group_by_npp(self, raw_table: list) -> dict:
         tb = {}
-        for row in raw_table:
-            work_row = self.string_to_float_item(row)
-            tb.setdefault(row[0], []).append(work_row)
+        for rows in raw_table:
+            work_rows = self.string_to_float_item(rows)
+            tb.setdefault(rows[0], []).append(work_rows)
         return tb
 
-    def string_to_float_item(self, row: list) -> list:
-        m_row = []
+    @staticmethod
+    def string_to_float_item(rows: list) -> list:
+        m_rows = []
         i = 0
-        while i < len(row):
+        while i < len(rows):
             if i == 8:
-                m_row.append(float(row[i].replace(',', '.')))
+                m_rows.append(float(rows[i].replace(',', '.')))
             else:
-                m_row.append(row[i])
+                m_rows.append(rows[i])
             i += 1
-        return m_row
+        return m_rows
 
-    def sort_by_value(self, group_table: dict) -> dict:
-        sorted_tabl = {}
-        for group, row in group_table.items():
-            sorted_row = sorted(row, key=lambda x: x[8], reverse=True)
-            sorted_tabl[group] = sorted_row
-        return sorted_tabl
+    @staticmethod
+    def sort_by_value(group_table: dict) -> dict:
+        sorted_table = {}
+        for group, rows in group_table.items():
+            sorted_rows = sorted(rows, key=lambda x: x[8], reverse=True)
+            sorted_table[group] = sorted_rows
+        return sorted_table
 
-    def get_90_cum_percent(self, group_table: dict) -> dict:
-        tabl = {}
+    @staticmethod
+    def get_90_cum_percent(group_table: dict) -> Tuple[dict, dict]:
+        table = {}
+        not_selected_table = {}
         for group, row in group_table.items():
             s = 0
             for r in row:
@@ -70,73 +73,121 @@ class ExcelFile:
             for r in row:
                 percent = (r[8] / s) * 100
                 if previous_percent + percent <= 90:
-                    tabl.setdefault(group, []).append(r)
+                    table.setdefault(group, []).append(r)
+                else:
+                    not_selected_table.setdefault(group, []).append(r)
                 previous_percent = previous_percent + percent
-        return tabl
+        return table, not_selected_table
 
-    def get_stat_char(self, row: list) -> Tuple[float, float, int, float]:
+    @staticmethod
+    def get_stat_char(rows: list) -> Tuple[float, float, int, float]:
         s = 0
-        for r in row:
+        for r in rows:
             s = s + r[8]
-        average = s / len(row)
+        average = s / len(rows)
         sig = 0
-        for r in row:
+        for r in rows:
             sig = sig + (r[8] - average) * (r[8] - average)
-        if len(row) >= 20 or len(row) == 1:
-            sigma = math.sqrt(sig / (len(row)))
+        if len(rows) >= 20 or len(rows) == 1:
+            sigma = math.sqrt(sig / (len(rows)))
         else:
-            sigma = math.sqrt(sig / (len(row) - 1))
-        count = len(row)
+            sigma = math.sqrt(sig / (len(rows) - 1))
+        count = len(rows)
         covar = (sigma / average) * 100
         return average, sigma, count, covar
 
-    def divide_row(self, row: list, average) -> Tuple[list, list]:
-        ll1 = []
-        ll2 = []
-        for r in row:
+    @staticmethod
+    def divide_rows(rows: list, average) -> Tuple[list, list]:
+        rows_1 = []
+        rows_2 = []
+        for r in rows:
             if r[8] > average:
-                ll1.append(r)
+                rows_1.append(r)
             else:
-                ll2.append(r)
-        return ll1, ll2
+                rows_2.append(r)
+        return rows_1, rows_2
 
-    def stat_char(self, group_table: dict):
+    def stat_char(self, group_table: dict) -> Tuple[dict, dict, dict, dict, dict, dict]:
         average = {}
         sigma = {}
+        count = {}
+        covar = {}
         chosen = {}
         strata = {}
         not_chosen = {}
         step = 0
-        average[step] = {}
-        sigma[step] = {}
         q = queue.Queue()
-        for group, row in group_table.items():
-            average[step][group], sigma[step][group], count, _ = self.get_stat_char(row)
-            for r in row:
-                if len(row) >= 20:
-                    if r[8] >= (average[step][group] + (3 * sigma[step][group])):
+        for group, rows in group_table.items():
+            average[group] = {}
+            sigma[group] = {}
+            count[group] = {}
+            average[group][step], sigma[group][step], count[group][step], _ = self.get_stat_char(rows)
+            for r in rows:
+                if len(rows) >= 20:
+                    if r[8] >= (average[group][step] + (3 * sigma[group][step])):
                         chosen.setdefault(group, []).append(r)
                     else:
                         not_chosen.setdefault(group, []).append(r)
-                elif len(row) <= 3:
+                elif len(rows) <= 3:
                     chosen.setdefault(group, []).append(r)
                 else:
-                    if r[8] >= (average[step][group] + (2 * sigma[step][group])):
+                    if r[8] >= (average[group][step] + (2 * sigma[group][step])):
                         chosen.setdefault(group, []).append(r)
                     else:
                         not_chosen.setdefault(group, []).append(r)
-        for group, row in not_chosen.items():
+        for group, rows in not_chosen.items():
+            average[group] = {}
+            sigma[group] = {}
+            count[group] = {}
+            covar[group] = {}
             step = 1
-            q.put(row)
+            q.put(rows)
             while not q.empty():
-                average[step] = {}
-                sigma[step] = {}
-                rq = q.get()
-                average[step][group], sigma[step][group], count, covar = self.get_stat_char(rq)
-                if covar > 33:
-                    row_1, row_2 = self.divide_row(rq, average[step][group])
+                rows_q = q.get()
+                average[group][step], sigma[group][step], count[group][step], covar[group][step] = self.get_stat_char(rows_q)
+                if covar[group][step] > 33:
+                    row_1, row_2 = self.divide_rows(rows_q, average[group][step])
                     q.put(row_1)
                     q.put(row_2)
                 else:
-                    strata.setdefault(group, []).append(rq)
+                    strata.setdefault(group, []).append(rows_q)
                 step += 1
+        return chosen, strata, average, sigma, count, covar
+
+    def random_choose(self, strata: dict):
+        for group, strata_item in strata.items():
+            dn = 0
+            count_all = 0
+            sum_group = 0
+            for i, rows in enumerate(strata_item):
+                _, sigma, count, _ = self.get_stat_char(rows)
+                dn = dn + (sigma * sigma * count)
+                count_all = count_all + count
+                for r in rows:
+                    sum_group = sum_group + r[8]
+            variance_group = dn / count_all
+            # opt_number =
+
+
+
+
+
+    def write_to_file(self, file_name: str, tb_by_npp: dict, tb_title: list, chosen: dict):
+        db = xl.Database()
+        sheet = 'Processed'
+        db.add_ws(sheetname=sheet, data={})
+        for col_id, data in enumerate(tb_title, start=1):
+            db.ws(sheet).update_index(row=1, col=col_id, val=data)
+        i = 2
+        for group in tb_by_npp.keys():
+            # chosen
+            if chosen.get(group):
+                for rows in chosen[group]:
+                    for col_id, data in enumerate(rows + ['BIG'], start=1):
+                        db.ws(sheet).update_index(row=i, col=col_id, val=data)
+                    i += 1
+                i += 1
+        xl.writexl(db, file_name)
+
+    def is_file_exist(self, file_name):
+        pass
