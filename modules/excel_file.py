@@ -5,6 +5,7 @@ from typing import Tuple
 import math
 import queue
 import random
+from openpyxl import load_workbook
 
 
 class ExcelFile:
@@ -25,6 +26,23 @@ class ExcelFile:
                 continue
             row = [str(v).strip() for v in row]
             raw_table.append(row)
+        return title, raw_table
+
+    @staticmethod
+    def load_table_new(filepath: str) -> Tuple[list, list]:
+        wb = load_workbook(filepath)
+        sheet = wb.active
+        title = []
+        raw_table = []
+        first_row = True
+        for row in sheet:
+            if first_row:
+                for r in row:
+                    title.append(str(r.value).strip())
+                first_row = False
+                continue
+            row_a = [str(v.value).strip() for v in row]
+            raw_table.append(row_a)
         return title, raw_table
 
     # def group_by_kd(self, raw_table: list):

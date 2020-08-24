@@ -24,7 +24,8 @@ class CpromApp(QtWidgets.QMainWindow, design.Ui_MainWindow, QtWidgets.QInputDial
             self.start_text()
             return
         self.listWidget.addItem('Таблица из файла ' + f[0] + ' загружена.')
-        tb_title, tb_raw = self.xl.load_table(f[0])
+        # tb_title, tb_raw = self.xl.load_table(f[0])
+        tb_title, tb_raw = self.xl.load_table_new(f[0])
         # group by NPP
         tb_by_npp = self.xl.group_by_npp(tb_raw)
         # sorted into NPP group
