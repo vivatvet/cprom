@@ -5,7 +5,6 @@ from PyQt5 import QtWidgets
 from gui import design
 from modules import excel_file
 import re
-import pprint
 
 
 class CpromApp(QtWidgets.QMainWindow, design.Ui_MainWindow, QtWidgets.QInputDialog):
@@ -34,22 +33,24 @@ class CpromApp(QtWidgets.QMainWindow, design.Ui_MainWindow, QtWidgets.QInputDial
         cum_90_percent_table, not_selected_table = self.xl.get_90_cum_percent(tb_by_npp_sorted)
         # choose big company and get states and other
         chosen, strata, average, sigma, count, covar = self.xl.stat_char(cum_90_percent_table)
-        self.xl.random_choose(strata)
+        # choose in stratas
+        strata_final = self.xl.random_choose(strata, average)
+        # make final table
+        final_table = self.xl.make_final_table(tb_by_npp_sorted, chosen, strata_final, not_selected_table)
+        # save to file
+        f_w = re.sub(r'.xlsx|.xls', '_processed.xlsx', f[0])
+        self.xl.write_to_file(f_w, tb_title, final_table)
         self.listWidget.addItem('Таблица обработана.')
         self.listWidget.addItem('Файл записан.')
-        # f_w = re.sub(r'.xlsx|.xls', '_processed.xlsx', f[0])
-        # self.xl.write_to_file(f_w, tb_by_npp, tb_title, chosen)
-
 
     def start_text(self):
         self.listWidget.addItem(" ")
-        self.listWidget.addItem("\n\n    Выберите Excel файл.")
-        self.listWidget.addItem("    ВАЖНО!\nПервый столбец должен быть коды НПП, девятый столбец - цены. Иначе программа будет работать некорректно.")
+        self.listWidget.addItem("\n\nВыберите Excel файл.")
+        self.listWidget.addItem("ВАЖНО!\nПервый столбец должен быть коды НПП, девятый столбец - цены. Иначе программа будет работать некорректно.")
         # inputD = QtWidgets.QInputDialog(self)  #.setGeometry.(self, 300, 300, 350, 250)
         # inputD.setGeometry(500, 500, 500, 500)
         # text, ok, = inputD.getText(self, 'Input Dialog', 'test')
         # print(text)
-
 
 
 if __name__ == '__main__':
