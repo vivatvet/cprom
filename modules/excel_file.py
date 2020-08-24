@@ -6,6 +6,7 @@ import math
 import queue
 import random
 from openpyxl import load_workbook
+from openpyxl import Workbook
 
 
 class ExcelFile:
@@ -294,3 +295,46 @@ class ExcelFile:
                 if 'BIG' in row or 'chosen' in row:
                     sum_chosen = sum_chosen + row[8]
         return sum_chosen
+
+    def write_to_file_new(self, file_name: str, tb_title: list, final_table: dict):
+        wb = Workbook()
+        wb.save(file_name)
+        wb = load_workbook(file_name)
+        sheet = wb.active
+
+        for col_id, data in enumerate(tb_title, start=1):
+            sheet.cell(row=1, column=col_id).value = data
+        i = 2
+        for group in final_table.keys():
+            sum_all = self.get_sum_all(final_table[group])
+            sum_chosen = self.get_sum_chosen(final_table[group])
+            percent = (sum_chosen / sum_all) * 100
+            for col_id, data in enumerate([group, sum_all, percent], start=1):
+                sheet.cell(row=i, column=col_id).value = data
+            i += 1
+            # write big
+            if final_table[group].get('big'):
+                for rows in final_table[group]['big']:
+                    for col_id, data in enumerate(rows, start=1):
+                        sheet.cell(row=i, column=col_id).value = data
+                    i += 1
+            # write stratas
+            i_strata = 1
+            is_strata = True
+            while is_strata:
+                if final_table[group].get('strata_' + str(i_strata)):
+                    for rows in final_table[group]['strata_' + str(i_strata)]:
+                        for col_id, data in enumerate(rows, start=1):
+                            sheet.cell(row=i, column=col_id).value = data
+                        i += 1
+                    i_strata += 1
+                else:
+                    is_strata = False
+            # write not selected
+            if final_table[group].get('not_selected'):
+                for rows in final_table[group]['not_selected']:
+                    for col_id, data in enumerate(rows, start=1):
+                        sheet.cell(row=i, column=col_id).value = data
+                    i += 1
+            i += 1
+        wb.save(file_name)

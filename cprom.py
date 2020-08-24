@@ -40,7 +40,8 @@ class CpromApp(QtWidgets.QMainWindow, design.Ui_MainWindow, QtWidgets.QInputDial
         final_table = self.xl.make_final_table(tb_by_npp_sorted, chosen, strata_final, not_selected_table)
         # save to file
         f_w = re.sub(r'.xlsx|.xls', '_processed.xlsx', f[0])
-        self.xl.write_to_file(f_w, tb_title, final_table)
+        # self.xl.write_to_file(f_w, tb_title, final_table)
+        self.xl.write_to_file_new(f_w, tb_title, final_table)
         self.listWidget.addItem('Таблица обработана.')
         self.listWidget.addItem('Файл записан.')
 
