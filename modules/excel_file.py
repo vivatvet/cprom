@@ -179,7 +179,7 @@ class ExcelFile:
                 if rows in random_chosen[group]:
                     r = []
                     for row in rows:
-                        r.append(row + ['выбрано'])
+                        r.append(row + ['chosen'])
                     strata_mod.setdefault(group, []).append(r)
                 else:
                     strata_mod.setdefault(group, []).append(rows)
@@ -199,12 +199,12 @@ class ExcelFile:
                     first = True
                     for row in strata_item:
                         if first:
-                            if row[-1] == 'выбрано':
+                            if row[-1] == 'chosen':
                                 r = row + [strata_name, average, sigma, covar]
                             else:
                                 r = row + ['', strata_name, average, sigma, covar]
                         else:
-                            if row[-1] == 'выбрано':
+                            if row[-1] == 'chosen':
                                 r = row + [strata_name]
                             else:
                                 r = row + ['', strata_name]
@@ -273,6 +273,6 @@ class ExcelFile:
         sum_chosen = 0
         for _, rows in table.items():
             for row in rows:
-                if 'BIG' in row or 'выбрано' in row:
+                if 'BIG' in row or 'chosen' in row:
                     sum_chosen = sum_chosen + row[8]
         return sum_chosen
