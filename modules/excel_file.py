@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import pylightxl as xl
 from typing import Tuple
 import math
 import queue
@@ -13,21 +12,6 @@ class ExcelFile:
 
     def __init__(self):
         self.title = []
-
-    @staticmethod
-    def load_table(file_name: str) -> Tuple[list, list]:
-        db = xl.readxl(file_name)
-        title = []
-        raw_table = []
-        first_row = True
-        for row in db.ws(db.ws_names[0]).rows:
-            if first_row:
-                title = row
-                first_row = False
-                continue
-            row = [str(v).strip() for v in row]
-            raw_table.append(row)
-        return title, raw_table
 
     @staticmethod
     def load_table_new(filepath: str) -> Tuple[list, list]:
@@ -169,7 +153,6 @@ class ExcelFile:
 
     def random_choose(self, strata: dict, average: dict) -> dict:
         random_chosen = {}
-        strata_mod = {}
         for group, strata_item in strata.items():
             dn = 0
             count_group = 0
@@ -188,21 +171,12 @@ class ExcelFile:
                     sum_strata = sum_strata + r[8]
                 opt_number_strata = math.ceil((sum_strata / sum_group) * (math.ceil(opt_number + 2)))
                 rows_dict = {k: v for k, v in enumerate(rows)}
-                choose_list = random.sample(rows_dict.keys(), opt_number_strata if len(rows_dict) >= opt_number_strata else len(rows_dict))
+                choose_number = opt_number_strata if len(rows_dict) >= opt_number_strata else len(rows_dict)
+                choose_list = random.sample(rows_dict.keys(), choose_number)
                 choose_list.sort()
-                rows_for_choose = [rows_dict[k] for k in choose_list]
+                rows_for_choose = [rows_dict[k] + ['chosen'] if k in choose_list else rows_dict[k] for k in rows_dict.keys()]
                 random_chosen.setdefault(group, []).append(rows_for_choose)
-                # random_chosen_not_selected.setdefault(group, []).append([k for k in rows if k not in rows_for_choose])
-        for group, strata_item in strata.items():
-            for rows in strata_item:
-                if rows in random_chosen[group]:
-                    r = []
-                    for row in rows:
-                        r.append(row + ['chosen'])
-                    strata_mod.setdefault(group, []).append(r)
-                else:
-                    strata_mod.setdefault(group, []).append(rows)
-        return strata_mod
+        return random_chosen
 
     def make_final_table(self, tb_by_npp: dict, chosen: dict, strata: dict, not_selected: dict) -> dict:
         final_table = {}
@@ -235,47 +209,6 @@ class ExcelFile:
                     final_table.setdefault(group, {}).setdefault('not_selected', []).append(rows)
         return final_table
 
-    def write_to_file(self, file_name: str, tb_title: list, final_table: dict):
-        db = xl.Database()
-        sheet = 'Processed'
-        db.add_ws(sheetname=sheet, data={})
-        for col_id, data in enumerate(tb_title, start=1):
-            db.ws(sheet).update_index(row=1, col=col_id, val=data)
-        i = 2
-        for group in final_table.keys():
-            sum_all = self.get_sum_all(final_table[group])
-            sum_chosen = self.get_sum_chosen(final_table[group])
-            percent = (sum_chosen / sum_all) * 100
-            for col_id, data in enumerate([group, sum_all, percent], start=1):
-                db.ws(sheet).update_index(row=i, col=col_id, val=data)
-            i += 1
-            # write big
-            if final_table[group].get('big'):
-                for rows in final_table[group]['big']:
-                    for col_id, data in enumerate(rows, start=1):
-                        db.ws(sheet).update_index(row=i, col=col_id, val=data)
-                    i += 1
-            # write stratas
-            i_strata = 1
-            is_strata = True
-            while is_strata:
-                if final_table[group].get('strata_' + str(i_strata)):
-                    for rows in final_table[group]['strata_' + str(i_strata)]:
-                        for col_id, data in enumerate(rows, start=1):
-                            db.ws(sheet).update_index(row=i, col=col_id, val=data)
-                        i += 1
-                    i_strata += 1
-                else:
-                    is_strata = False
-            # write not selected
-            if final_table[group].get('not_selected'):
-                for rows in final_table[group]['not_selected']:
-                    for col_id, data in enumerate(rows, start=1):
-                        db.ws(sheet).update_index(row=i, col=col_id, val=data)
-                    i += 1
-            i += 1
-        xl.writexl(db, file_name)
-
     def is_file_exist(self, file_name):
         pass
 
@@ -302,7 +235,7 @@ class ExcelFile:
         wb = load_workbook(file_name)
         sheet = wb.active
 
-        for col_id, data in enumerate(tb_title, start=1):
+        for col_id, data in enumerate(tb_title + ['', 'strata', 'average', 'sigma', 'covar'], start=1):
             sheet.cell(row=1, column=col_id).value = data
         i = 2
         for group in final_table.keys():

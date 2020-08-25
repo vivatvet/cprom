@@ -17,14 +17,13 @@ class CpromApp(QtWidgets.QMainWindow, design.Ui_MainWindow, QtWidgets.QInputDial
 
     def load_file(self):
         self.listWidget.clear()
-        self.listWidget.addItem("Загружаем и обрабатываем таблицу. Ждите...")
+        self.listWidget.addItem("Loading and processing the excel table.\nPlease be patient and wait...")
         f = QtWidgets.QFileDialog.getOpenFileName(self, filter="Exel files (*.xlsx *.xls)")
         if not f[0]:
             self.listWidget.clear()
             self.start_text()
             return
-        self.listWidget.addItem('Таблица из файла ' + f[0] + ' загружена.')
-        # tb_title, tb_raw = self.xl.load_table(f[0])
+        self.listWidget.addItem('The table from file ' + f[0] + ' was loaded.')
         tb_title, tb_raw = self.xl.load_table_new(f[0])
         # group by NPP
         tb_by_npp = self.xl.group_by_npp(tb_raw)
@@ -40,15 +39,14 @@ class CpromApp(QtWidgets.QMainWindow, design.Ui_MainWindow, QtWidgets.QInputDial
         final_table = self.xl.make_final_table(tb_by_npp_sorted, chosen, strata_final, not_selected_table)
         # save to file
         f_w = re.sub(r'.xlsx|.xls', '_processed.xlsx', f[0])
-        # self.xl.write_to_file(f_w, tb_title, final_table)
         self.xl.write_to_file_new(f_w, tb_title, final_table)
-        self.listWidget.addItem('Таблица обработана.')
-        self.listWidget.addItem('Файл записан.')
+        self.listWidget.addItem('Processing completed.')
+        self.listWidget.addItem('File is saved.')
 
     def start_text(self):
         self.listWidget.addItem(" ")
-        self.listWidget.addItem("\n\nВыберите Excel файл.")
-        self.listWidget.addItem("ВАЖНО!\nПервый столбец должен быть коды НПП, девятый столбец - цены. Иначе программа будет работать некорректно.")
+        self.listWidget.addItem("\nPlease select Excel file")
+        self.listWidget.addItem("IMPORTANT!\nThe first column is for grouping, the ninth column is for calculation. Otherwise, the program will not work correctly.")
         # inputD = QtWidgets.QInputDialog(self)  #.setGeometry.(self, 300, 300, 350, 250)
         # inputD.setGeometry(500, 500, 500, 500)
         # text, ok, = inputD.getText(self, 'Input Dialog', 'test')
