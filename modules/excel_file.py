@@ -164,7 +164,7 @@ class ExcelFile:
                 for r in rows:
                     sum_group = sum_group + r[8]
             variance_group = dn / count_group
-            opt_number = (count_group * variance_group * (1.96 * 1.96)) / ((variance_group * (1.96 * 1.96)) + (0.1 * average[group][0]))
+            opt_number = (count_group * variance_group * (1.96 * 1.96)) / ((variance_group * (1.96 * 1.96)) + ((0.1 * average[group][0]) * (0.1 * average[group][0]) * count_group))
             for i, rows in enumerate(strata_item):
                 sum_strata = 0
                 for r in rows:
