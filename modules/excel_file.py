@@ -73,13 +73,14 @@ class ExcelFile:
             for r in row:
                 s = s + r[8]
             previous_percent = 0
-            for r in row:
-                percent = (r[8] / s) * 100
-                if previous_percent + percent <= 90 or len(row) <= 3:
+            percent = {}
+            for i, r in enumerate(row):
+                percent[i] = (r[8] / s) * 100
+                if (previous_percent + percent[i] <= 90 or len(row) <= 3) or (i == 0 and percent[i] > 90):
                     table.setdefault(group, []).append(r)
                 else:
                     not_selected_table.setdefault(group, []).append(r)
-                previous_percent = previous_percent + percent
+                previous_percent = previous_percent + percent[i]
         return table, not_selected_table
 
     @staticmethod
