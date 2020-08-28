@@ -156,18 +156,10 @@ class ExcelFile:
 
     @staticmethod
     def sort_strata(strata: dict) -> dict:
-        sorted_strata_tmp = {}
-        sorted_strata_items_dict = {}
         sorted_strata = {}
         for group, strata_item in strata.items():
-            for i, rows in enumerate(strata_item):
-                sorted_rows = sorted(rows, key=lambda x: x[8], reverse=True)
-                sorted_strata_items_dict[i] = sorted_rows
-            for k in sorted_strata_items_dict.keys():
-                sorted_strata_tmp.setdefault(group, []).append(sorted_strata_items_dict[k])
-        for group, strat in sorted_strata_tmp.items():
-            sorted_strata_in_group = sorted(strat, key=lambda x: x[0][8], reverse=True)
-            sorted_strata[group] = sorted_strata_in_group
+            sorted_item = sorted(strata_item, key=lambda x: x[0][8], reverse=True)
+            sorted_strata[group] = sorted_item
         return sorted_strata
 
     def random_choose(self, strata: dict, average: dict) -> dict:
