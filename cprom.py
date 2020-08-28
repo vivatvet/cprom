@@ -33,8 +33,10 @@ class CpromApp(QtWidgets.QMainWindow, design.Ui_MainWindow, QtWidgets.QInputDial
         cum_90_percent_table, not_selected_table = self.xl.get_90_cum_percent(tb_by_npp_sorted)
         # choose big company and get states and other
         chosen, strata, average, sigma, count, covar = self.xl.stat_char(cum_90_percent_table)
+        # sort strata
+        sorted_strata = self.xl.sort_strata(strata)
         # choose in stratas
-        strata_final = self.xl.random_choose(strata, average)
+        strata_final = self.xl.random_choose(sorted_strata, average)
         # make final table
         final_table = self.xl.make_final_table(tb_by_npp_sorted, chosen, strata_final, not_selected_table)
         # save to file
